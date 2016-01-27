@@ -75,6 +75,8 @@ export default class PopoverListMembers extends React.Component {
         const currentUserId = UserStore.getCurrentId();
         const ch = ChannelStore.getCurrent();
 
+	console.log(members);
+
         if (members && teamMembers) {
             members.sort((a, b) => {
                 const aName = Utils.displayUsername(a.id);
