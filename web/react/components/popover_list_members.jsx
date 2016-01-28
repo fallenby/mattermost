@@ -75,8 +75,6 @@ export default class PopoverListMembers extends React.Component {
         const currentUserId = UserStore.getCurrentId();
         const ch = ChannelStore.getCurrent();
 
-	console.log(members);
-
         if (members && teamMembers) {
             members.sort((a, b) => {
                 const aName = Utils.displayUsername(a.id);
@@ -87,7 +85,7 @@ export default class PopoverListMembers extends React.Component {
 
             members.forEach((m, i) => {
                 let button = '';
-                if (currentUserId !== m.id && ch.type !== 'D') {
+                if (currentUserId !== m.id && m.offline !== true && ch.type !== 'D') {
                     button = (
                         <a
                             href='#'
@@ -104,19 +102,53 @@ export default class PopoverListMembers extends React.Component {
                     name = Utils.displayUsername(teamMembers[m.username].id);
                 }
 
+                let styles = 'profile-img rounded pull-left';
+
+                let iconWrapperStyle = {
+                    'font-size': '29px',
+                    cursor: 'default'
+                };
+
+                let iconStyle = {
+                    'margin-top': '-1px'
+                };
+
+                let src = '/api/v1/users/' + m.id + '/image?time=' + m.update_at + '&' + Utils.getSessionIndex();
+                let userIconElement = null;
+
+                if (m.offline) {
+                    userIconElement = (
+                        <div
+                            className={styles}
+                            width='26px'
+                            height='26px'
+                            style={iconWrapperStyle}
+                            title='This channel member is offline'
+                        >
+                            <span
+                                className='fa fa-exclamation-circle'
+                                style={iconStyle}
+                            />
+                        </div>
+                    );
+                } else {
+                    userIconElement = (
+                        <img
+                            className={styles}
+                            width='26px'
+                            height='26px'
+                            src={src}
+                        />
+                    );
+                }
+
                 if (name && teamMembers[m.username].delete_at <= 0) {
                     popoverHtml.push(
                         <div
                             className='text-nowrap'
                             key={'popover-member-' + i}
                         >
-
-                            <img
-                                className='profile-img rounded pull-left'
-                                width='26px'
-                                height='26px'
-                                src={`/api/v1/users/${m.id}/image?time=${m.update_at}&${Utils.getSessionIndex()}`}
-                            />
+                            {userIconElement}
                             <div className='pull-left'>
                                 <div
                                     className='more-name'
@@ -135,18 +167,38 @@ export default class PopoverListMembers extends React.Component {
             });
         }
 
-        let count = this.props.memberCount;
-        let countText = '-';
+        let count = {
+            total: this.props.memberCount,
+            online: 0,
+            offline: 0
+        };
+
+        members.forEach((m) => {
+            if (m.offline) {
+                count.offline += 1;
+            } else {
+                count.online += 1;
+            }
+        });
+
+        let countOfflineText = '/-';
+        let countOnlineText = '-';
 
         // fall back to checking the length of the member list if the count isn't set
-        if (!count && members) {
-            count = members.length;
+        if (!count.total && members) {
+            count.total = members.length;
         }
 
-        if (count > Constants.MAX_CHANNEL_POPOVER_COUNT) {
-            countText = Constants.MAX_CHANNEL_POPOVER_COUNT + '+';
-        } else if (count > 0) {
-            countText = count.toString();
+        if (count.offline > Constants.MAX_CHANNEL_POPOVER_COUNT) {
+            countOfflineText = ' (' + Constants.MAX_CHANNEL_POPOVER_COUNT + '+) ';
+        } else if (count.offline > 0) {
+            countOfflineText = ' (' + count.offline.toString() + ') ';
+        }
+
+        if (count.online > Constants.MAX_CHANNEL_POPOVER_COUNT) {
+            countOnlineText = Constants.MAX_CHANNEL_POPOVER_COUNT + '+';
+        } else if (count.online > 0) {
+            countOnlineText = count.online.toString();
         }
 
         return (
@@ -157,7 +209,16 @@ export default class PopoverListMembers extends React.Component {
                     onClick={(e) => this.setState({popoverTarget: e.target, showPopover: !this.state.showPopover})}
                 >
                     <div>
-                        {countText}
+                        <span
+                            title='Online channel members'
+                        >
+                            {countOnlineText}
+                        </span>
+                        <span
+                            title='Offline channel members'
+                        >
+                            {countOfflineText}
+                        </span>
                         <span
                             className='fa fa-user'
                             aria-hidden='true'

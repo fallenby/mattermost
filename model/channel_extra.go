@@ -8,12 +8,19 @@ import (
 	"io"
 )
 
+const (
+	MEMBER_OFFLINE_TIMEOUT = 1 * 60 * 1000 // 1 minute
+)
+
 type ExtraMember struct {
-	Id       string `json:"id"`
-	Nickname string `json:"nickname"`
-	Email    string `json:"email"`
-	Roles    string `json:"roles"`
-	Username string `json:"username"`
+	Id                 string `json:"id"`
+	Nickname           string `json:"nickname"`
+	Email              string `json:"email"`
+	Roles              string `json:"roles"`
+	Username           string `json:"username"`
+	LastActivityAt     int64  `json:"last_activity_at,omitempty"`
+	LastPingAt         int64  `json:"last_ping_at,omitempty"`
+	Offline            bool   `json:"offline"`
 }
 
 func (o *ExtraMember) Sanitize(options map[string]bool) {
@@ -46,4 +53,8 @@ func ChannelExtraFromJson(data io.Reader) *ChannelExtra {
 	} else {
 		return nil
 	}
+}
+
+func (o *ExtraMember) IsOffline() bool {
+	return (GetMillis()-o.LastPingAt) > MEMBER_OFFLINE_TIMEOUT && (GetMillis()-o.LastActivityAt) > MEMBER_OFFLINE_TIMEOUT
 }
